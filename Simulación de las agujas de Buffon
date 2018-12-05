@@ -1,0 +1,38 @@
+#Simulación de las agujas de buffon
+#Autor: Wenses Penadillo
+
+
+from random import random
+from math import sin,pi
+
+def corta(l,d):
+    #válido únicamente si l <= d
+    x = (d/2)*random()
+    y = (l/2)*sin((pi/2)*random())
+    
+    if y>x:
+        return True
+    else:
+        return False
+
+intentos = 100000
+N = 0
+C = 0
+L=1
+D=1
+
+print
+print 'La Aguja de Buffon'
+print
+print '(10000 lanzamientos), L = ',L,', D = ',D
+print
+
+while N < intentos:
+    N+=1
+    if corta(L,D):
+        C+=1
+print
+print 'C = ',C,', N = ',N
+print
+print 'P.Teorica = ',(2*L)/(pi*D)
+print 'P(obtenida como C/N) = ',C/N
