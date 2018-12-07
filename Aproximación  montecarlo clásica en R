@@ -1,0 +1,125 @@
+####Aproximación Monte Carlo Clásica 
+#se considera la aproximación de la integral: Theta=integral(I)g(x)f(x)dx, I:intervalo finito o infinito de la recta real, g: función cuadrado-integrables y f: densidad de probabilidad
+#interpretada como Theta=E[g(X)], con f la función densidad de probabilidad de la variable aleatoria X
+#Algoritmo//se estima Theta mediante:
+##generación del vector u con n números aleatorios de distribución uniforme, u=[u_1,...,u_n] 
+##generación de la muestra simple X con n números aleatorios, X=[X_1,...,X_n] (ej: mediante método de transformación inversa)
+##transformar los valores generados mediante la función g (si el soporte de f coincide con el intervalo I), obteniéndose g(X_1),...,g(X_n)
+##calcular la estimación de la integral (la estimación de la media aritmética de los valores transformados): ThetaM=mean(g(X))=1/n*sum(g(X_i))
+##evaluar la calidad de las estimaciones mediante el método MC clásico: E[ThetaM-Theta]^2=Var(ThetaM)=1/n*Var(g(X))=1/n*sigma^2
+ 
+#Ejemplo: Theta=integral(a=-2,b=2)g(x)dx  , g(x)=1/(pi*(1+x^2))
+#tomamos y=(x-a)/(b-a)  (y=(x+2)/4), dy=dx/(b-a) (dy=dx/4)
+#sustituimos x=2*(2*y-1) y dx=4*dy, quedando ThetaMC=integral(a=0,b=1)g(2*(2*y-1))4*dy
+#generamos u=y=[n números aleatorios con distribución Unif(0,1)]
+#realizamos g(x) y ThetaMC=sum(g(x)/n)
+MonteCarlo_Clasico=function(n=50)
+{
+ThetaMC=0
+u=runif(n)    #genero n números aleatorios con distrib Unif(0,1)
+for(I in 1:n)
+    {
+    Muestra=(2*u[I]-1)*2   #x=2*(2*y-1)
+    g=1/(pi*(1+Muestra^2)) #g(x)
+    ThetaMC=ThetaMC+g/n    #thetaMC=g(x)/n  
+    }
+ThetaMC   #thetaMC=sum(g(x)/n)
+}
+ 
+MonteCarlo_Clasico2=function(n=50,fun0=function(n) runif(1:n),fun1=function(u) (2*u-1)*2,fun=function(Muestra) 1/(pi*(1+Muestra^2)))
+{
+ThetaMC=0;G=NULL
+u=fun0(n);Muestra=fun1(u[1:n]);g=fun(Muestra[1:n])
+for(I in 1:n)
+    {                    
+    ThetaMC=ThetaMC+g[I]/n    #thetaMC=g(x)/n  ver por qué no es *4??
+    G=c(G,g[I])
+    }
+VarThetaMC=(1/n)*var(G)
+out=list(ThetaMC=ThetaMC,VarThetaMC=VarThetaMC)    #thetaMC=sum(g(x)/n)
+out
+}
+ 
+ 
+###Aproximación por método de variables antitéticas
+#es una alternativa al método anterior, donde obtenemos una reducción de la varianza del estimador de MC.
+#Algoritmo//se estima Theta mediante:
+##generación una muestra de n números aleatorios con distribución Uniforme(0,1), u=[u_1,...,u_n];##generamos la muestra antitética: u´=[1-u_1,...,1-u_n]
+##generación de 2 muestras simple X e Y con n números aleatorios, MuestraO=X=[X_1=Finversa(u_1),...,X_n=Finversa(u_n)] e MuestraAnt=Y=[Y_1=Finversa(u´_1),...,Y_n=Finversa(u´_1)](ej: mediante método de transformación inversa)
+##transformación de ambas muestras mediante la función g (cuando el soporte de f coincide con I), obteniéndose gO=[g(X_1),...,g(X_n)] y , obteniéndose gAnt=[g(Y_1),...,g(Y_n)]
+##calcular el estimador antitético: ThetaA=1/(2*n)*sum(g(X_i)+g(Y_i))
+##evaluar la calidad de las estimaciones mediante el método de variables antitéticas: E[ThetaA-Theta]^2=Var(ThetaA)=1/(2n)^2*Var(g(X_i)+g(Y_i))<=Var(ThetaM)
+ 
+#Ejemplo: Theta=integral(a=-2,b=2)g(x)dx  , g(x)=1/(pi*(1+x^2))
+#generamos un vector u con n números aleatorios de distribución Unif(0,1)
+#por el Método de transformación inversa: sea F una función de distrib continua y X una variable aleatoria con distribución F,
+#podemos generar X a partir de F, seleccionando X=F_inversa(U)
+#en nuestro caso: u=F(x)=1/(pi*(1+x^2)), por lo tanto x=sqrt(1/(pi*u)-1)
+#construimos así el vector MuestraOriginal=x=[F_inversa(u_1),...,F_inversa(u_n)]
+##lo mismo hacemos para el vector [1-u_1,...,1-u_n], construyendo el vector MuestraAntitetica=y=[F_inversa(1-u_1),...,F_inversa(1-u_n)]
+#trasformamos ambas muestras mediante la función g, obteniendo gOriginal=[g(x_1),...,g(x_n)] y gAntitetica=[g(y_1),...,g(y_n)]
+#calculamos el estimador antitetico: ThetaAnt=(1/2*n)*sum(g(x_i)+g(y_i))
+VariablesAntiteticas=function(n=50)
+{
+ThetaAnt=0
+u=runif(n)
+for(I in 1:n)
+    {
+     MuestraO=(2*(u[I])-1)*2
+     MuestraAnt=(2*(1-u[I])-1)*2
+     gO=1/(pi*(1+MuestraO^2))        #ver por qué no es tranfs inversa??
+     gAnt=1/(pi*(1+MuestraAnt^2))
+     ThetaAnt=(ThetaAnt+gO+gAnt)/2*n
+    }
+ThetaAnt
+}
+ 
+VariablesAntiteticas2=function(n=50,fun0=function(n) runif(1:n),fun1=function(x) (2*x-1)*2,fun=function(Muestra) 1/(pi*(1+Muestra^2)))
+{
+ThetaAnt=0; VarThetaAnt=0
+u=fun0(n); MuestraO=fun1(u)   
+v=1-u; MuestraAnt=fun1(v)   
+gO=fun(MuestraO);gAnt=fun(MuestraAnt)
+G=NULL
+for(i in 1:n)          
+    {
+     ThetaAnt=ThetaAnt+((gO[i]+gAnt[i])/(2*n))
+     G=rbind(G,c(gO[i],gAnt[i]))
+     }
+VarThetaAnt=(1/(2*n)^2)*var(G[,1]+G[,2])
+out=list(ThetaAnt=ThetaAnt,VarThetaAnt=VarThetaAnt)
+out
+}
+ 
+###Estimación mediante variables de control
+#modifica el estimador MC mediante una variable de control con media conocida, que permita definir una mixtura que minimice el error cuadrático medio o la varianza del estimador (nuestro caso).
+#definimos Z=X+c(Y-mu_y) #X es la variable transformada con densidad de probabilidad f, cuya media aritmética proporciona el estimador MC;Y es la variable de control;mu_y=E[Y] es la esperanza de Y, y se supone conocida;c es una constante y se calcula minimizando el error cuadrático medio (=la varianza del estimador del parámetro Theta es desconocido)
+##Var(Z)=Var(X+c(Y-mu_y))=Var(X+c*Y)=Var(X)+c^2*Var(Y)+2*c*Cov(X,Y)
+##derivando Var(Z) respecto al parámetro c, se obtiene: dVar(Z)/dc=2*c*Var(Y)+2*Cov(X,Y), de donde igualando a cero se obtiene el C óptimo (que minimiza el error cuadrático medio)
+##C=-Cov(X,Y)/Var(Y)
+#por tanto para c=C, Var(Z)=Var(X)=[Cov(X,Y)]^2/Var(Y)
+#para la aproximación de ThetaC basado en Y: ThetaC=ThetaM+C*(mean(Y)-mu_y), con ThetaM=mean(g(x)) y mean(Y)=1/n*sum(y_i)
+##cuando Cov(X,Y) Y Var(Y) no son conocidas, las estimamos por: Cov(X,Y)=1/n*sum((g(x_i)-mean(g(x)))(y_i-mu_y)) y Var(Y)=1/n*sum((y_i-mu_y)^2)
+ 
+#Ejemplo: Theta=integral(a=2,b=infinito)g(x)dx, g(x)=1/(pi*(1+x^2)), n=50 (tamaño muestral)
+#consideraremos a la variable de control Y como la indicadora del intervalo [0,1/2] sobre la U=Uniforme(0,1): Y=I[0,1/2](U)
+ 
+VariablesControl=function(n=50,C=0.2956)
+{
+v=runif(n)
+u=runif(n)
+ThetaM=ThetaC=NULL;G=NULL
+for(I in 1:n)
+    {
+    Muestra=tan(pi*(v[I]-.5))   #construimos X=Muestra mediante la transformación inversa de la Cauchy
+    if(Muestra>=2) {g=1} else {g=0} #g es la función indicadora de la Muestra en el intervalo [2,infinito)
+    if(u[I]<=.5) {Y=1} else {Y=0}   #Y es la función indicadora de U (U~Unif(0,1)) en el intervalo [0,1/2]
+    G=c(G,g)
+    }
+ThetaM=sum(G)/n
+ThetaC=ThetaM+C*(Y-.5)/n     #mu_y=.5
+VarThetaM=(1/n)*var(G)
+Cov=sum((Muestra-ThetaM)*(Y-.5))/n;Var=sum((Y-.5)^2)/n;VarThetaC=VarThetaM-(Cov^2)/Var
+out=list(c(ThetaM=ThetaM,ThetaC=ThetaC),c(VarThetaM=VarThetaM,VarThetaC=VarThetaC))
+out
+}
